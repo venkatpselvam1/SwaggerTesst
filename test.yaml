@@ -1,0 +1,95 @@
+openapi: 3.0.1
+info:
+  title: DSM Event listener
+  description: MEM Web API for DSM event listener.
+  contact:
+    name: 'VMware, Inc.'
+  license:
+    name: 'http://www.vmware.com/go/patents'
+  version: '1.0'
+servers:
+- url: www.api.vmware.com
+paths:
+  '/users/{user-uuid}/devices/{device-uuid}/resources/actions-status':
+    post:
+      tags:
+        - DSM event listner
+      summary: >-
+        Reports the status of the actions performed for the resources on the
+        device.
+      operationId: PostActionsStatus
+      parameters:
+        - name: user-uuid
+          in: path
+          description: UUID of the user.
+          required: true
+          schema:
+            type: string
+            description: UUID of the user.
+            format: uuid
+        - name: device-uuid
+          in: path
+          description: UUID of the device.
+          required: true
+          schema:
+            type: string
+            description: UUID of the device.
+            format: uuid
+      requestBody:
+        description: List of status of the actions performed for resources on a device.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResourceActionStatusRequestV1Model'
+      responses:
+        '204':
+          description: NoContent
+        '400':
+          description: |-
+            BadRequest
+            1. { 2003: Resource should not be empty. }
+
+components:
+  schemas:
+    ResourceActionStatusV1Model:
+      type: object
+      properties:
+        resource_uuid:
+          type: string
+          description: >-
+            uuid of the resource for which the given command should to be
+            performed.
+          format: uuid
+        action:
+          type: string
+        status:
+          type: string
+        old_status:
+          type: string
+        version:
+          type: string
+          description: Version of the resource.
+          nullable: true
+        target:
+          type: string
+          description: Target of the resource.
+          nullable: true
+        properties:
+          type: object
+          additionalProperties:
+            type: string
+            items:
+              type: string
+          nullable: true
+      description: Model to define the status of action for a resource.
+    ResourceActionStatusRequestV1Model:
+      type: object
+      properties:
+        actions_status:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResourceActionStatusV1Model'
+          description: List of statuses of the actions performed for resources on a device.
+          nullable: true
+      description: List of statuses of the actions performed for resources on a device.
+
