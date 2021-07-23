@@ -1,48 +1,208 @@
-﻿swagger: '2.0'
+openapi: 3.0.0
 info:
-  title: Device unenrollment
-  description: API to unenroll a device.
-  contact:
-    name: 'VMware, Inc.'
+  title: Profile Payload
   license:
-    name: 'Copyright © 2021 VMware, Inc. All rights reserved.'
+    name: Copyright © 2020 VMware Inc. All rights reserved.
+  description: Endpoint to return the profile payload details.
   version: '1'
-host: www.api.vmware.com
-basePath: /devices
-security:
-  - bearerAuth: []
+servers:
+  - url: 'https://www.api.vmware.com'
 x-internalApi: override
+x-attributes:
+  - ValidationFilter
+  - IgnoreXmlMediaType
+security:
+  - BasicAuth: []
+  - ApiKeyAuth: []
+  - CmsAuth: []
 paths:
-  '/{device-uuid}/unenroll':
-    post:
+  /profile-payload-names:
+    get:
+      x-internalApi: override
+      operationId: GetProfilePayloadNames
+      summary: Get the supported profile payload names.
+      description: Get the supported profile payload names for the given platform.
+      x-authorization:
+        - ClaimsAuthorize(ProfileServicePermission.READ)
       tags:
-        - DeviceUnenrollment
-      summary: Unenroll the given device from the system.
-      operationId: UnEnrollDevice
+        - Profiles
       parameters:
-        - name: device-uuid
+        - name: platform
+          in: query
+          description: Represents device platform. If it is not provided the API will return empty response.
+          schema:
+            type: string
+            enum:
+              - ANDROID
+              - APPLE
+              - APPLE_OS_X
+              - APPLE_TV
+              - WINDOWS_DESKTOP
+              - WINDOWS_PHONE
+        - name: configuration_type
+          in: query
+          description: Represents the configuration type of the profile.
+          schema:
+            type: string
+            enum:
+              - UNKNOWN,
+              - DEVICE,
+              - MDM,
+              - APPLICATION,
+              - CUSTOM,
+              - AGENT_SETTINGS,
+              - SDK_POILICIES,
+              - SECURE_BROWSER,
+              - MDM_COMMAND,
+              - CONTENT_MANAGEMENT,
+              - MDM_COMPLIANCE,
+              - APP_PROIFLE,
+              - GEO_FENCING_AREA,
+              - SHARED_DEVICE,
+              - APP_WRAPPING_PROFILE,
+              - PRINTER,
+              - CONTAINER,
+              - PRINTER_FILES,
+              - CUSTOM_EMAIL,
+              - APP_CATALOG,
+              - APP_RESTRICTION,
+              - SDK_POLICIES_V2,
+              - APP_WRAPPING_PROFILE_V2,
+              - APP_LOCK_PROFILE,
+              - ENSURE_DEVICE_UNLOCKED_PROFILE,
+              - HORIZON_WEB_APP,
+              - WINDOWS8_WEB_CLIP,
+              - WINDOWS_RT_SCEP_PROFILE,
+              - WINDOWS_PHONE_SCEP_PROFILE,
+              - PRIVACY_WEB_CLIP,
+              - APPCONFIG_SETTINGS_ENDPOINT,
+              - APPLE_EDUCATION_PROFILE,
+              - SHOW_SPECIFIC_APPS,
+              - PROFILE_RESOURCE,
+              - PROFILE_POLICY,
+              - PRIVACY_PREFERENCES,
+              - HID_PASSPORT_SERVICE_SETTINGS
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProfilePayloadModel'
+        '204':
+          description: No Content
+        '400':
+          description: |-
+            Bad Request
+            1. { 5005: Invalid profile platform }
+            2. { 5005: Invalid profile configuration type }
+  /profile-payloads/{profile-uuid}:
+    get:
+      x-authorization: [ClaimsAuthorize(ProfileServicePermission.READ)]
+      operationId: GetProfilePayloads
+      x-routeName: GetProfilePayloadsAsync
+      summary: Get the profile payload details.
+      tags:
+        - Profiles
+      parameters:
+        - name: profile-uuid
           in: path
-          description: UUID of the device.
+          description: Uuid of the profile.
           required: true
-          format: uuid
-          type: string
+          schema:
+            type: string
+            format: uuid
       responses:
         '200':
           description: Ok
-        '401':
-            description: |
-              Unauthorized.
-                1. { 1003: Invalid token or issuer. }
-                2. { 1004: No credentials provided. }
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfilePayloadDetailsV1Model"
         '403':
-            description: |
-              Forbidden
-                1. { 5143: User does not have access to the device. }
+          description: |
+            { 5001: User does not have access to this organization group. }
+          content:
+            application/json:
+              schema:
+                $ref: "https://raw.githubusercontent.com/airwatch-api/swagger/master/CommonDefinitions.yaml#/definitions/BaseExceptionModel"
         '404':
-            description: |
-              NotFound
-                1. { 5061: Device not found for specified UUID. }
-
-x-attributes:
-  - TokenServiceAuthorization("uem-api")
-  - IgnoreXmlMediaType
+          description: |
+            NotFound
+             { 7012: Profile matching uuid {profileuuid} is not found.}
+          content:
+            application/json:
+              schema:
+                $ref: "https://raw.githubusercontent.com/airwatch-api/swagger/master/CommonDefinitions.yaml#/definitions/BaseExceptionModel"
+components:
+  securitySchemes:
+    BasicAuth:
+      type: http
+      scheme: basic
+    CmsAuth:
+      type: apiKey
+      in: header
+      name: authorization
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: aw-tenant-code
+  schemas:
+    ProfilePayloadModel:
+      properties:
+        payload_name:
+          description: Name of the payload.
+          example: sso settings
+          type: string
+        display_key:
+          description: The globalized key used for display purpose.
+          type: string
+          example: ssosettings
+        configuration_type:
+          description: Represents the configuration type of the profile.
+          type: string
+          example: DEVICE
+    
+    ProfilePayloadDetailsV1Model:
+        description: Profile details model that contains the profile payload setting details.
+        type: object
+        properties:
+          name:
+            description: Name of the profile.
+            type: string
+          uuid:
+            description: Unique identifier of the profile.
+            type: string
+            format: uuid
+            example: "A5DDCF34-A6D4-415B-8ABD-4740BA2FF22C"
+          id:
+            description: Id of the profile.
+            type: integer
+            example: 1
+          unique_key:
+            description: Unique key of the profile.
+            type: string
+            example: "A5DDCF34-A6D4-415B-8ABD-4740BA2FF22C"
+          version_id:
+            description: Version id of the profile to be installed on the device.
+            type: integer
+            example: 1
+          version:
+            description: Version of the profile to be installed on the device.
+            type: integer
+            example: 1
+          context:
+            description: Context of the profile.
+            type: string
+          configuration_type:
+            description: Configuration type of the profile.
+            type: string
+          payloads:
+            description: Dictionary of profile payload settings.
+            type: array
+            items:
+             type: object
+             additionalProperties:
+                type: string
